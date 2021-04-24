@@ -3,7 +3,7 @@
 ## Installation
 
 ``` go
-import crawler "github.com/Kininaru/google-groups-crawler"
+import crawler "github.com/casbin/google-groups-crawler"
 ```
 
 ## Usage
