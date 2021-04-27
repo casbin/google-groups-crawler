@@ -14,6 +14,8 @@
 
 package google_groups_crawler
 
+import "strings"
+
 type GoogleGroup struct {
 	GroupName string
 }
@@ -32,5 +34,5 @@ type GoogleGroupMessage struct {
 }
 
 func NewGoogleGroup(name string) GoogleGroup {
-	return GoogleGroup{GroupName: name}
+	return GoogleGroup{GroupName: strings.Split(name, "@")[0]}
 }
