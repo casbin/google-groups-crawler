@@ -18,6 +18,7 @@ import "strings"
 
 type GoogleGroup struct {
 	GroupName string
+	Cookie string
 }
 
 type GoogleGroupConversation struct {
@@ -25,6 +26,7 @@ type GoogleGroupConversation struct {
 	Title string
 	Id string
 	GroupName string
+	AuthorNameToEmail map[string]string
 }
 
 type GoogleGroupMessage struct {
@@ -33,6 +35,10 @@ type GoogleGroupMessage struct {
 	Time string
 }
 
-func NewGoogleGroup(name string) GoogleGroup {
-	return GoogleGroup{GroupName: strings.Split(name, "@")[0]}
+func NewGoogleGroup(name string, cookie ...string) GoogleGroup {
+	ret := GoogleGroup{GroupName: strings.Split(name, "@")[0]}
+	if len(cookie) != 0 {
+		ret.Cookie = cookie[0]
+	}
+	return ret
 }

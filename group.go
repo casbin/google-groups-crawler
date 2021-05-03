@@ -44,12 +44,14 @@ func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversat
 		href, _ := s.Find(".Dysyo").Attr("href")
 		hrefs := strings.Split(href, "/")
 		id := hrefs[len(hrefs) - 1]
-		ret = append(ret, GoogleGroupConversation{
+		newConversation := GoogleGroupConversation{
 			Author: author,
 			Title: title,
 			Id: id,
 			GroupName: g.GroupName,
-		})
+		}
+		newConversation.GetAuthorNameToEmailMapping(client, g.Cookie)
+		ret = append(ret, newConversation)
 	})
 	return ret
 }
