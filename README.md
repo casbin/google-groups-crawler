@@ -14,14 +14,15 @@ We must get an instance of `GoogleGroup` first:
 group := crawler.NewGoogleGroup(groupName string, cookie ...string)
 ```
 
-The second parameter `cookie` is optional. Google group won't tell you email address of all repliers until you logged in, so you need to fill the parameter with a logged-in user's cookie. (Of course, this user must be a member of the group) 
+The second parameter `cookie` is optional. Google group won't tell you email address of all repliers until you logged in, so you need to fill the parameter with a logged-in user's cookie. (Of course, this user must be a member of the group)
 
 It is OK to leave `cookie` blank, code still works. But `AuthorNameToEmail` in `GoogleGroupConversation` will be an empty map. If you do need `cookie` to access emails of repliers, please follow these steps:
 
-- open Google Chrome (or another browser)
-- Navigate to [Google Group](https://groups.google.com/)
+- open Google Chrome (or another browser) and login
+- Navigate to [Google Group](https://groups.google.com/), select the group you want to craw
 - Press F12, and select `network`
-- Select an item in the list
+- Select a conversation (any conversation in this group is OK)
+- Select the first item in the request list
 - Select `Headers`
 - In `Request Headers`, right click `cookie`, and copy the value
 - Fill the parameter `cookie` with what you copied
