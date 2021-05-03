@@ -50,7 +50,9 @@ func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversat
 			Id: id,
 			GroupName: g.GroupName,
 		}
-		newConversation.GetAuthorNameToEmailMapping(client, g.Cookie)
+		if len(g.Cookie) != 0 {
+			newConversation.GetAuthorNameToEmailMapping(client, g.Cookie)
+		}
 		ret = append(ret, newConversation)
 	})
 	return ret

@@ -79,8 +79,15 @@ func (c *GoogleGroupConversation) GetAuthorNameToEmailMapping(client http.Client
 
 	start := strings.LastIndex(htmlStr, "AF_initDataCallback({")
 	end := strings.LastIndex(htmlStr, ", sideChannel: {}}")
+	if start == -1 || end == -1 {
+		return
+	}
 	data := htmlStr[start:end]
-	data = data[strings.Index(data, "["):]
+	startIdx := strings.Index(data, "[")
+	if startIdx == -1 {
+		return
+	}
+	data = data[startIdx:]
 
 	if reg == nil {
 		reg, _ = regexp.Compile("\\[\\[\"([A-Za-z0-9]|[ ])*\",((null)|([\\S]*)),\"[\\S\"]*@[\\S\"]*.[\\S\"]*\"")
