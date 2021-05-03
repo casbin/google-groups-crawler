@@ -17,9 +17,13 @@ package google_groups_crawler
 import (
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
+
+var reg *regexp.Regexp
 
 func (c GoogleGroupConversation) GetAllMessages(client http.Client) []GoogleGroupMessage {
 	var ret []GoogleGroupMessage
@@ -48,4 +52,50 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client) []GoogleGrou
 		})
 	})
 	return ret
+}
+
+func (c *GoogleGroupConversation) GetAuthorNameToEmailMapping(client http.Client, cookies ...string) {
+	var cookie string
+	if len(cookies) != 0 {
+		cookie = cookies[0]
+	}
+	targetUrl := "https://groups.google.com/g/" + c.GroupName + "/c/" + c.Id
+
+	req, _ := http.NewRequest("GET", targetUrl, nil)
+	req.Header.Set("cookie", cookie)
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	}
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	htmlStr := doc.Text()
+
+	start := strings.LastIndex(htmlStr, "AF_initDataCallback({")
+	end := strings.LastIndex(htmlStr, ", sideChannel: {}}")
+	data := htmlStr[start:end]
+	data = data[strings.Index(data, "["):]
+
+	if reg == nil {
+		reg, _ = regexp.Compile("\\[\\[\"([A-Za-z0-9]|[ ])*\",((null)|([\\S]*)),\"[\\S\"]*@[\\S\"]*.[\\S\"]*\"")
+	}
+	buf := reg.FindAllString(data, -1)
+	for i, b := range buf {
+		buf[i] = b[strings.LastIndex(b, "[[") + 2:]
+	}
+	NameToEmail := make(map[string]string)
+	for _, b := range buf {
+		s := strings.Split(b, ",")
+		if len(s) < 3 {
+			continue
+		}
+		NameToEmail[s[0][1:len(s[0])-1]] = s[2][1:len(s[2])-1]
+	}
+	c.AuthorNameToEmail = NameToEmail
 }
