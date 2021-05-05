@@ -41,6 +41,10 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client) []GoogleGrou
 		log.Fatal(err)
 	}
 
+	doc.Find(".wqmMgb").Remove()
+	doc.Find(".gmail_quote").Remove()
+	doc.Find(".gmail_attr").Remove()
+
 	doc.Find(".BkrUxb").Each(func(i int, s *goquery.Selection) {
 		author := s.Find(".s1f8Zd").Text()
 		content, _ := s.Find(".ptW7te").Html()
