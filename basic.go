@@ -18,21 +18,22 @@ import "strings"
 
 type GoogleGroup struct {
 	GroupName string
-	Cookie string
+	Cookie    string
 }
 
 type GoogleGroupConversation struct {
-	Author string
-	Title string
-	Id string
-	GroupName string
+	Author            string
+	Title             string
+	Id                string
+	GroupName         string
 	AuthorNameToEmail map[string]string
+	Time              string
 }
 
 type GoogleGroupMessage struct {
-	Author string
+	Author  string
 	Content string
-	Time string
+	Time    string
 }
 
 func NewGoogleGroup(name string, cookie ...string) GoogleGroup {
