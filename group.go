@@ -41,6 +41,7 @@ func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversat
 	doc.Find(".yhgbKd").Each(func(i int, s *goquery.Selection) {
 		author := s.Find(".z0zUgf").Text()
 		title := s.Find(".iBQX0d").Find(".o1DPKc").Text()
+		time := s.Find(".tRlaM").Text()
 		href, _ := s.Find(".Dysyo").Attr("href")
 		hrefs := strings.Split(href, "/")
 		id := hrefs[len(hrefs) - 1]
@@ -49,6 +50,7 @@ func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversat
 			Title: title,
 			Id: id,
 			GroupName: g.GroupName,
+			Time: time,
 		}
 		if len(g.Cookie) != 0 {
 			newConversation.GetAuthorNameToEmailMapping(client, g.Cookie)
