@@ -15,6 +15,7 @@
 package google_groups_crawler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -25,9 +26,17 @@ import (
 
 var reg *regexp.Regexp
 
-func (c GoogleGroupConversation) GetAllMessages(client http.Client) []GoogleGroupMessage {
+func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...string) []GoogleGroupMessage {
+	cookie := ""
+	if len(cookies) > 0 {
+		cookie = cookies[0]
+	}
+
 	var ret []GoogleGroupMessage
-	res, err := client.Get("https://groups.google.com/g/" + c.GroupName + "/c/" + c.Id)
+	targetUrl := fmt.Sprintf("https://groups.google.com/g/%s/c/%s", c.GroupName, c.Id)
+	req, _ := http.NewRequest("GET", targetUrl, nil)
+	req.Header.Set("cookie", cookie)
+	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
