@@ -16,7 +16,6 @@ package google_groups_crawler
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -38,16 +37,17 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...s
 	req.Header.Set("cookie", cookie)
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return ret
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		fmt.Printf("Google Groups Crawler: status code error: %d %s\n", res.StatusCode, res.Status)
+		return ret
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return ret
 	}
 
 	doc.Find(".wqmMgb").Remove()
@@ -78,15 +78,16 @@ func (c *GoogleGroupConversation) GetAuthorNameToEmailMapping(client http.Client
 	req.Header.Set("cookie", cookie)
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		fmt.Printf("Google Groups Crawler: status code error: %d %s\n", res.StatusCode, res.Status)
+		return
 	}
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	htmlStr := doc.Text()
 

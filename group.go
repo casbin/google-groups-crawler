@@ -15,7 +15,7 @@
 package google_groups_crawler
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -26,16 +26,17 @@ func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversat
 	var ret []GoogleGroupConversation
 	res, err := client.Get("https://groups.google.com/g/" + g.GroupName)
 	if err != nil {
-		log.Fatal(err)
+		return ret
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		fmt.Printf("status code error: %d %s\n", res.StatusCode, res.Status)
+		return ret
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return ret
 	}
 
 	doc.Find(".yhgbKd").Each(func(i int, s *goquery.Selection) {
