@@ -31,9 +31,10 @@ type GoogleGroupConversation struct {
 }
 
 type GoogleGroupMessage struct {
-	Author  string
-	Content string
-	Time    string
+	Author      string
+	AuthorEmail string
+	Content     string
+	Time        string
 }
 
 func NewGoogleGroup(name string, cookie ...string) GoogleGroup {

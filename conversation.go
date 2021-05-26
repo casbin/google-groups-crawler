@@ -16,107 +16,109 @@ package google_groups_crawler
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
-var reg *regexp.Regexp
+func SeparateArray(input string) []string {
+	var ret []string
+	needSkip := false
+	level := 0
+	var start int
+	for i, c := range input {
+		if needSkip {
+			needSkip = false
+			continue
+		}
+		if c == '\\' {
+			needSkip = true
+			continue
+		}
+		if c == '[' {
+			if level == 0 {
+				start = i
+			}
+			level++
+		}
+		if c == ']' {
+			level--
+			if level == 0 {
+				ret = append(ret, input[start:i+1])
+			}
+		}
+	}
+	return ret
+}
 
 func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...string) []GoogleGroupMessage {
 	cookie := ""
 	if len(cookies) > 0 {
 		cookie = cookies[0]
 	}
+	targetUrl := fmt.Sprintf("https://groups.google.com/g/%s/c/%s", c.GroupName, c.Id)
 
 	var ret []GoogleGroupMessage
-	targetUrl := fmt.Sprintf("https://groups.google.com/g/%s/c/%s", c.GroupName, c.Id)
-	req, _ := http.NewRequest("GET", targetUrl, nil)
-	req.Header.Set("cookie", cookie)
-	res, err := client.Do(req)
-	if err != nil {
-		return ret
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		fmt.Printf("Google Groups Crawler: status code error: %d %s\n", res.StatusCode, res.Status)
-		return ret
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return ret
-	}
-
-	doc.Find(".wqmMgb").Remove()
-	doc.Find(".gmail_quote").Remove()
-	doc.Find(".gmail_attr").Remove()
-
-	doc.Find(".BkrUxb").Each(func(i int, s *goquery.Selection) {
-		author := s.Find(".s1f8Zd").Text()
-		content, _ := s.Find(".ptW7te").Html()
-		time := s.Find(".zX2W9c").Text()
-		ret = append(ret, GoogleGroupMessage{
-			Author: author,
-			Content: content,
-			Time: time,
-		})
-	})
-	return ret
-}
-
-func (c *GoogleGroupConversation) GetAuthorNameToEmailMapping(client http.Client, cookies ...string) {
-	var cookie string
-	if len(cookies) != 0 {
-		cookie = cookies[0]
-	}
-	targetUrl := "https://groups.google.com/g/" + c.GroupName + "/c/" + c.Id
 
 	req, _ := http.NewRequest("GET", targetUrl, nil)
 	req.Header.Set("cookie", cookie)
-	res, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		fmt.Printf("Google Groups Crawler: status code error: %d %s\n", res.StatusCode, res.Status)
-		return
-	}
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return
-	}
-	htmlStr := doc.Text()
+	res, _ := client.Do(req)
+	resp, _ := ioutil.ReadAll(res.Body)
+	body := string(resp)
 
-	start := strings.LastIndex(htmlStr, "AF_initDataCallback({")
-	end := strings.LastIndex(htmlStr, ", sideChannel: {}}")
+	start := strings.LastIndex(body, "AF_initDataCallback({key: 'ds:")
+	end := strings.LastIndex(body, ", sideChannel: {}});")
 	if start >= end {
-		return
+		return ret
 	}
-	data := htmlStr[start:end]
-	startIdx := strings.Index(data, "[")
-	if startIdx == -1 {
-		return
+	body = body[start:end]
+	start = strings.Index(body, "data:")
+	if start < 0 {
+		return ret
 	}
-	data = data[startIdx:]
+	body = body[start+5:]
+	start = strings.Index(body, "[[[[")
+	if start < 0 {
+		return ret
+	}
+	body = body[start+1:len(body)-4]
 
-	if reg == nil {
-		reg, _ = regexp.Compile("\\[\\[\"([A-Za-z0-9]|[ ])*\",((null)|([\\S]*)),\"[\\S\"]*@[\\S\"]*.[\\S\"]*\"")
-	}
-	buf := reg.FindAllString(data, -1)
-	for i, b := range buf {
-		buf[i] = b[strings.LastIndex(b, "[[") + 2:]
-	}
-	NameToEmail := make(map[string]string)
-	for _, b := range buf {
-		s := strings.Split(b, ",")
-		if len(s) < 3 {
+	conversations := SeparateArray(body)
+	for _, c := range conversations {
+		c = c[1:len(c)-1]
+		sep := SeparateArray(c)
+		if len(sep) != 2 {
 			continue
 		}
-		NameToEmail[s[0][1:len(s[0])-1]] = s[2][1:len(s[2])-1]
+		subStr := sep[0]
+		subStr = subStr[1:len(subStr)-1]
+		sep = SeparateArray(subStr)
+		if len(sep) != 3 {
+			continue
+		}
+		emailStart := strings.Index(sep[0], "[[")
+		emailEnd := strings.Index(sep[0], "]")
+		if emailStart >= emailEnd {
+			continue
+		}
+		emailStr := sep[0][emailStart+2:emailEnd]
+		emailSep := strings.Split(emailStr, ",")
+		if len(emailSep) < 3 {
+			continue
+		}
+		author := emailSep[0]
+		email := emailSep[2]
+		msg := sep[1][14:len(sep[1])-7]
+		sep1 := SeparateArray(sep[0][1:len(sep[0])-1])
+		if len(sep1) == 0 {
+			continue
+		}
+		unixTime := sep1[len(sep1)-1]
+		if len(unixTime) < 3 {
+			continue
+		}
+		unixTime = unixTime[1:len(unixTime)-1]
+		ret = append(ret, GoogleGroupMessage{Author: author, AuthorEmail: email, Content: msg, Time: unixTime})
 	}
-	c.AuthorNameToEmail = NameToEmail
+	return ret
 }
