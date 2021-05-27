@@ -14,9 +14,11 @@ We must get an instance of `GoogleGroup` first:
 group := crawler.NewGoogleGroup(groupName string, cookie ...string)
 ```
 
-The second parameter `cookie` is optional. Google group won't tell you email address of all repliers until you logged in, so you need to fill the parameter with a logged-in user's cookie. (Of course, this user must be a member of the group)
+The second parameter `cookie` is optional. Google group won't tell you email address of all repliers until you logged
+in, so you need to fill the parameter with a logged-in user's cookie. (Of course, this user must be a member of the
+group)
 
-It is OK to leave `cookie` blank, code still works. But `AuthorNameToEmail` in `GoogleGroupConversation` will be an empty map. If you do need `cookie` to access emails of repliers, please follow these steps:
+It is OK to leave `cookie` blank, code still works. But `AuthorEmail` in `GoogleGroupMessage` will be empty. If you do need `cookie` to access emails of repliers, please follow these steps:
 
 - open Google Chrome (or another browser) and login
 - Navigate to [Google Group](https://groups.google.com/), select the group you want to craw
@@ -43,30 +45,29 @@ conversations := group.GetConversations(http.Client{})
 - this function returns an array of `GoogleGroupMessage`
 
 ```go
-messages := conversation.GetAllMessages(http.Client{})
+messages := conversation.GetAllMessages(http.Client{}, removeGmailQuote)
 ```
-
-
 
 ## Data Structure
 
-```
+```go
 type GoogleGroup struct {
-	GroupName string
-	Cookie string
+    GroupName string
+    Cookie    string
 }
 
 type GoogleGroupConversation struct {
-	Author string
-	Title string
-	Id string
-	GroupName string
-	AuthorNameToEmail map[string]string
+    Title     string
+    Id        string
+    GroupName string
+    Time      float64
+    Cookie    string
 }
 
 type GoogleGroupMessage struct {
-	Author string
-	Content string
-	Time string
+    Author      string
+    AuthorEmail string
+    Content     string
+    Time        float64
 }
 ```
