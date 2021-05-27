@@ -15,45 +15,91 @@
 package google_groups_crawler
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
-func (g GoogleGroup) GetConversations(client http.Client) []GoogleGroupConversation {
+func (g GoogleGroup) GetAllConversations(client http.Client) []GoogleGroupConversation {
+	targetUrl := fmt.Sprintf("https://groups.google.com/g/%s", g.GroupName)
 	var ret []GoogleGroupConversation
-	res, err := client.Get("https://groups.google.com/g/" + g.GroupName)
-	if err != nil {
-		return ret
-	}
-	defer res.Body.Close()
+
+	req, _ := http.NewRequest("GET", targetUrl, nil)
+	res, _ := client.Do(req)
 	if res.StatusCode != 200 {
-		fmt.Printf("status code error: %d %s\n", res.StatusCode, res.Status)
+		fmt.Printf("Google Groups Crawler: http GET request status code: %d\n", res.StatusCode)
 		return ret
 	}
+	resp, _ := ioutil.ReadAll(res.Body)
+	body := string(resp)
 
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	start := strings.LastIndex(body, "AF_initDataCallback({key: 'ds:")
+	end := strings.LastIndex(body, ", sideChannel: {}});")
+	if start >= end {
+		return ret
+	}
+	body = body[start:end]
+	start = strings.Index(body, "data:")
+	if start < 0 {
+		return ret
+	}
+	body = body[start+5:]
+
+	var dataArray []interface{}
+	err := json.Unmarshal([]byte(body), &dataArray)
 	if err != nil {
 		return ret
 	}
-
-	doc.Find(".yhgbKd").Each(func(i int, s *goquery.Selection) {
-		author := s.Find(".z0zUgf").Text()
-		title := s.Find(".iBQX0d").Find(".o1DPKc").Text()
-		time := s.Find(".kOkyJc").Find(".tRlaM").Text()
-		href, _ := s.Find(".Dysyo").Attr("href")
-		hrefs := strings.Split(href, "/")
-		id := hrefs[len(hrefs) - 1]
-		newConversation := GoogleGroupConversation{
-			Author: author,
-			Title: title,
-			Id: id,
-			GroupName: g.GroupName,
-			Time: time,
+	if len(dataArray) < 3 {
+		return ret
+	}
+	conversationArray, ok := dataArray[2].([]interface{})
+	if !ok {
+		return ret
+	}
+	for _, c := range conversationArray {
+		cArray, ok := c.([]interface{})
+		if !ok {
+			continue
 		}
-		ret = append(ret, newConversation)
-	})
+		if len(cArray) < 1 {
+			continue
+		}
+		cArray, ok = cArray[0].([]interface{})
+		if !ok {
+			continue
+		}
+		if len(cArray) < 6 {
+			continue
+		}
+		id, ok := cArray[1].(string)
+		if !ok {
+			continue
+		}
+		title, ok := cArray[2].(string)
+		if !ok {
+			continue
+		}
+		cArray, ok = cArray[5].([]interface{})
+		if !ok {
+			continue
+		}
+		if len(cArray) < 1 {
+			continue
+		}
+		time, ok := cArray[0].(float64)
+		if !ok {
+			continue
+		}
+		ret = append(ret, GoogleGroupConversation{
+			GroupName: g.GroupName,
+			Id: id,
+			Title: title,
+			Time: time,
+			Cookie: g.Cookie,
+		})
+	}
 	return ret
 }
