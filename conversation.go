@@ -132,11 +132,11 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 			continue
 		}
 		msg = msg[1:len(msg)-1]
-		msgSep = strings.Split(msg, ",")
-		if len(msgSep) < 2 {
+		msgIndex := strings.Index(msg, ",")
+		if msgIndex < 0 {
 			continue
 		}
-		msg = msgSep[1]
+		msg = msg[msgIndex+1:]
 		sep1 := SeparateArray(sep[0][1:len(sep[0])-1])
 		if len(sep1) == 0 {
 			continue
