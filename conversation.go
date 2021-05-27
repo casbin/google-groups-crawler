@@ -51,7 +51,7 @@ func SeparateArray(input string) []string {
 	return ret
 }
 
-func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...string) []GoogleGroupMessage {
+func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQuote bool, cookies ...string) []GoogleGroupMessage {
 	cookie := ""
 	if len(cookies) > 0 {
 		cookie = cookies[0]
@@ -63,6 +63,10 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...s
 	req, _ := http.NewRequest("GET", targetUrl, nil)
 	req.Header.Set("cookie", cookie)
 	res, _ := client.Do(req)
+	if res.StatusCode != 200 {
+		fmt.Printf("Google Groups Crawler: http GET request status code: %d\n", res.StatusCode)
+		return ret
+	}
 	resp, _ := ioutil.ReadAll(res.Body)
 	body := string(resp)
 
@@ -108,7 +112,31 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...s
 		}
 		author := emailSep[0]
 		email := emailSep[2]
-		msg := sep[1][14:len(sep[1])-7]
+		if len(sep[1]) < 3 {
+			continue
+		}
+		msgSep := SeparateArray(sep[1][1:len(sep[1])-1])
+		if len(msgSep) < 1 || len(msgSep[0]) < 3 {
+			continue
+		}
+		msgSep = SeparateArray(msgSep[0][1:len(msgSep[0])-1])
+		if len(msgSep) < 1 || len(msgSep[0]) < 3 {
+			continue
+		}
+		msgSep = SeparateArray(msgSep[0][1:len(msgSep[0])-1])
+		if len(msgSep) < 1 {
+			continue
+		}
+		msg := msgSep[0]
+		if len(msg) < 3 {
+			continue
+		}
+		msg = msg[1:len(msg)-1]
+		msgSep = strings.Split(msg, ",")
+		if len(msgSep) < 2 {
+			continue
+		}
+		msg = msgSep[1]
 		sep1 := SeparateArray(sep[0][1:len(sep[0])-1])
 		if len(sep1) == 0 {
 			continue
@@ -118,6 +146,18 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, cookies ...s
 			continue
 		}
 		unixTime = unixTime[1:len(unixTime)-1]
+
+		if len(author) < 3 || len(email) < 3 || len(msg) < 3 {
+			continue
+		}
+		author = author[1:len(author)-1]
+		email = email[1:len(email)-1]
+		msg = msg[1:len(msg)-1]
+
+		if removeGmailQuote {
+			msg = strings.Split(msg, "\\u003cdiv class\\u003d\\\"gmail_quote\\\"\\u003e")[0]
+		}
+
 		ret = append(ret, GoogleGroupMessage{Author: author, AuthorEmail: email, Content: msg, Time: unixTime})
 	}
 	return ret
