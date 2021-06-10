@@ -29,7 +29,17 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 	req, _ := http.NewRequest("GET", targetUrl, nil)
 	req.Header.Set("cookie", c.Cookie)
 	res, _ := client.Do(req)
+
+	if res == nil {
+		return ret
+	}
+
 	defer res.Body.Close()
+
+	if res.Body == nil {
+		return ret
+	}
+
 	if res.StatusCode != 200 {
 		fmt.Printf("Google Groups Crawler: http GET request status code: %d\n", res.StatusCode)
 		return ret

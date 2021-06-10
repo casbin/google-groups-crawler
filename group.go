@@ -28,7 +28,16 @@ func (g GoogleGroup) GetAllConversations(client http.Client) []GoogleGroupConver
 
 	req, _ := http.NewRequest("GET", targetUrl, nil)
 	res, _ := client.Do(req)
+	if res == nil {
+		return ret
+	}
+
 	defer res.Body.Close()
+
+	if res.Body == nil {
+		return ret
+	}
+
 	if res.StatusCode != 200 {
 		fmt.Printf("Google Groups Crawler: http GET request status code: %d\n", res.StatusCode)
 		return ret
