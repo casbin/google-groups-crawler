@@ -73,6 +73,7 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 	}
 
 	for _, msg := range msgArray {
+		var files []GoogleGroupFile
 		singleMsgArray, ok := msg.([]interface{})
 		if !ok || len(singleMsgArray) < 1 {
 			continue
@@ -84,6 +85,17 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 		singleMsgArray0, ok := singleMsgArray[0].([]interface{})
 		if !ok || len(singleMsgArray0) < 9 {
 			continue
+		}
+		singleMsgArray2, ok := singleMsgArray[2].([]interface{})
+		if ok && len(singleMsgArray2) > 0 {
+			for _, singleFileArray := range singleMsgArray2 {
+				singleFile := singleFileArray.([]interface{})
+				files = append(files, GoogleGroupFile{
+					FileName: singleFile[4].(string),
+					Url: singleFile[0].(string),
+					Type: singleFile[3].(string),
+				})
+			}
 		}
 		authorEmailArray, ok := singleMsgArray0[2].([]interface{})
 		if !ok || len(authorEmailArray) < 1 {
@@ -139,6 +151,7 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 			AuthorEmail: email,
 			Content: content,
 			Time: time,
+			Files: files,
 		})
 	}
 	return ret

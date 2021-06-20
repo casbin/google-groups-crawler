@@ -34,6 +34,13 @@ type GoogleGroupMessage struct {
 	AuthorEmail string
 	Content     string
 	Time        float64
+	Files       []GoogleGroupFile
+}
+
+type GoogleGroupFile struct {
+	FileName string
+	Url      string
+	Type     string
 }
 
 func NewGoogleGroup(name string, cookie ...string) GoogleGroup {
