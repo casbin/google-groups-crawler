@@ -89,7 +89,10 @@ func (c GoogleGroupConversation) GetAllMessages(client http.Client, removeGmailQ
 		singleMsgArray2, ok := singleMsgArray[2].([]interface{})
 		if ok && len(singleMsgArray2) > 0 {
 			for _, singleFileArray := range singleMsgArray2 {
-				singleFile := singleFileArray.([]interface{})
+				singleFile, ok := singleFileArray.([]interface{})
+				if !ok || len(singleFile) < 5 {
+					continue
+				}
 				files = append(files, GoogleGroupFile{
 					FileName: singleFile[4].(string),
 					Url: singleFile[0].(string),
